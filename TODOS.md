@@ -5,16 +5,18 @@ Kararlar: Yaklaşım D (ayrı uygulamalar + ortak `libpspkit` + tek köprü). US
 
 ## M0: USB spike (her şeyden önce)
 Mimarinin tamamı bu adımın sonucuna bağlı.
+Test rehberi: [docs/m0.md](docs/m0.md)
 - [ ] PSP-2006'da CFW sürümünü doğrula (ARK-4 / PRO / LME, 6.61)
-- [ ] `pspdev` toolchain'i kur (ya da `pspdev/pspdev` Docker imajını kullan)
-- [ ] `pspdev/psplinkusb`'yi derle: `usbhostfs.prx` + `usbhostfs_pc` (Linux)
-- [ ] `psplinkusb` lisansını kontrol et: gömülü mü kullanılacak, bağımlılık olarak mı?
-- [ ] Sony VID:PID'yi `lsusb` ile doğrula (tahmin `054c:01c9`)
-- [ ] Minimal EBOOT: async kanala "ping" yazsın, "pong" okusun
-- [ ] Host tarafında 20 satırlık Python: `usbhostfs_pc` TCP portuna bağlanıp echo yapsın
-- [ ] Soru: async kanallar user-mode EBOOT'tan çağrılabiliyor mu, yoksa kernel PRX mi gerekiyor?
-- [ ] Aynı EBOOT PPSSPP'de TCP soketiyle pong alsın
+- [x] `pspdev` toolchain'i kur (`~/pspdev`, release v20260901, psp-gcc 15.2; `usbhostfs_pc` pakette hazır geliyor)
+- [x] `usbhostfs.prx`'i pinlenmiş `third_party/psplinkusb` submodule'ünden derle (commit `8cc9876`)
+- [x] `psplinkusb` lisansı BSD-3-Clause. Submodule olarak kullanılıyor, `usbhostfs.prx` EBOOT'un yanında dağıtılacak
+- [x] VID:PID kaynak kodda `054c:01c9` (`usbhostfs.h`); gerçek cihazda `lsusb` ile teyit bekleniyor
+- [x] EBOOT (`psp/m0`): usbhostfs.prx'i KUBridge ile yükler, USB'yi başlatır, kanal 4'e ping yollar, pong ile RTT ölçer, async ve bulk hızını ölçer
+- [x] PC tarafı `tools/m0/echo.py`: localhost:10004, pong/ack/rate, PC → PSP mesaj (sahte soketle test edildi)
+- [ ] **PSP-2006 üzerinde çalıştır** ve sonuçları kaydet
+- [ ] Soru: user-mode EBOOT'tan usbhostfs'e geç bağlanma çalışıyor mu (KUBridge + late-link)? Çalışmıyorsa plan B: küçük bir kernel PRX
 - [ ] Gecikmeyi ölç (Deck hedefi: tuşa basıştan aksiyona < 100ms)
+- [ ] M0b: Aynı EBOOT PPSSPP'de TCP soketiyle pong alsın (PPSSPP kurulumu gerekli)
 
 ## Deck D1: çekirdek + ilk çalışan tuş
 - [ ] Repo iskeleti: `psp/libpspkit/`, `psp/apps/deck/`, `bridge/`, `desktop/`, `docs/`

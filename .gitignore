@@ -1,0 +1,11 @@
+# PSP build outputs
+*.o
+*.elf
+*.prx
+*.SFO
+EBOOT.PBP
+dist/
+
+# Python
+__pycache__/
+*.pyc

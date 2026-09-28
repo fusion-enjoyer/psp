@@ -1,0 +1,4 @@
+[submodule "third_party/psplinkusb"]
+	path = third_party/psplinkusb
+	url = https://github.com/pspdev/psplinkusb.git
+	ignore = dirty

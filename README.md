@@ -4,7 +4,7 @@ PSP'yi masanda gerçekten iş gören bir kontrol paneline çevirir. PSP'yi USB i
 
 İlk uygulama **Deck**: Stream Deck tarzı makro paneli. Her karo bir PSP tuşuna bağlı, L/R ile katmanlar, analog çubuk çevirme düğmesi gibi çalışıyor. Karolar bir masaüstü uygulamasıyla (PySide6) ayarlanıyor. Sonra **Printer** (3D yazıcı paneli) gelecek, ardından Media, MIDI ve Dev.
 
-> Durum: tasarım aşaması, henüz kod yok.
+> Durum: M0 (USB testi) kodu hazır, gerçek PSP üzerinde test bekliyor. Rehber: [docs/m0.md](docs/m0.md)
 
 - Tasarım: [docs/designs/pspkit-design.md](docs/designs/pspkit-design.md)
 - Tel kafes: [docs/designs/printer-flow-wireframe.png](docs/designs/printer-flow-wireframe.png)
