@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>PSP Printer app wireframe</title>
+<!-- Rough wireframe, not a visual design. Every screen is drawn at the real PSP resolution (480x272) and scaled 1.25x for readability. -->
+<style>
+  body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 24px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  p.lead { font-size: 13px; color: #666; margin: 0 0 20px; }
+  .row { display: flex; gap: 28px; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .step { font-size: 12px; color: #555; max-width: 600px; }
+  .step b { color: #222; }
+  /* 480x272 screen at 1.25x */
+  .screen { width: 600px; height: 340px; border: 2px solid #333; border-radius: 6px; background: #fff;
+            position: relative; box-sizing: border-box; font-size: 17px; }
+  .bar { position: absolute; left: 0; right: 0; height: 30px; display: flex; align-items: center;
+         justify-content: space-between; padding: 0 12px; border-bottom: 1px dashed #999; font-size: 14px; }
+  .bar.top { top: 0; }
+  .bar.bottom { bottom: 0; border-bottom: none; border-top: 1px dashed #999; justify-content: flex-start; gap: 22px; }
+  .body { position: absolute; top: 31px; bottom: 31px; left: 0; right: 0; padding: 14px 16px; box-sizing: border-box; }
+  .center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; gap: 10px; }
+  .big { font-size: 44px; font-weight: 700; }
+  .muted { color: #777; font-size: 14px; }
+  .progress { height: 18px; border: 1.5px solid #333; border-radius: 3px; position: relative; }
+  .progress i { position: absolute; left: 0; top: 0; bottom: 0; width: 63%; background: repeating-linear-gradient(45deg,#bbb 0 6px,#ddd 6px 12px); }
+  .gauges { display: flex; gap: 16px; margin-top: 12px; }
+  .gauge { flex: 1; border: 1.5px solid #333; border-radius: 4px; padding: 8px 10px; }
+  .gauge .v { font-size: 26px; font-weight: 700; }
+  .list div { border: 1.5px solid #bbb; border-radius: 4px; padding: 9px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .list div.sel { border-color: #222; border-width: 2.5px; }
+  .note { font-size: 11px; color: #a33; font-style: italic; }
+</style>
+</head>
+<body>
+<h1>Printer: plug-and-play akışı (tel kafes)</h1>
+<p class="lead">Her kutu gerçek PSP ekranı: 480×272, burada 1.25× çizildi. Kaba taslak; renk, font ve görsel dil sonra gelecek.</p>
+
+<div class="row">
+
+  <!-- STATE 1: app opened, cable not in / bridge not up. The only job: tell the user the ONE thing to do. -->
+  <div class="col">
+    <div class="step"><b>1. Bağlantı bekleniyor.</b> Uygulama açık ama köprü yok. Tek bir talimat gösterilir, hata kodu gösterilmez.</div>
+    <div class="screen">
+      <div class="bar top"><span>Printer</span><span>USB ○ bekleniyor</span></div>
+      <div class="body"><div class="center">
+        <div style="font-size:48px">⇄</div>
+        <div style="font-size:22px;font-weight:600">USB kablosunu PC'ye tak</div>
+        <div class="muted">Köprü otomatik başlar. 10 sn içinde olmazsa:<br>pspkit-bridge doctor</div>
+      </div></div>
+      <div class="bar bottom"><span>○ Çıkış</span><span>△ Yardım</span></div>
+    </div>
+    <div class="note">Edge case: kablo takılı ama köprü kurulu değil → aynı ekran + "pspkit.dev/kur" kısa URL'i.</div>
+  </div>
+
+  <!-- STATE 2: bridge found printers via mDNS. First run only; the choice is remembered. -->
+  <div class="col">
+    <div class="step"><b>2. Yazıcı seçimi (sadece ilk seferde).</b> Köprü LAN'ı mDNS ile taradı. Seçim hatırlanır, bir sonraki açılışta direkt 3. ekran.</div>
+    <div class="screen">
+      <div class="bar top"><span>Yazıcılar</span><span>USB ● bağlı</span></div>
+      <div class="body list">
+        <div class="sel"><span>▶ Voron 2.4</span><span class="muted">Moonraker · yazdırıyor</span></div>
+        <div><span>Ender 3</span><span class="muted">OctoPrint · boşta</span></div>
+        <div><span>Prusa MK4</span><span class="muted">PrusaLink · boşta</span></div>
+        <div><span>+ Elle ekle (IP)</span><span class="muted">bulunamadıysa</span></div>
+      </div>
+      <div class="bar bottom"><span>✕ Seç</span><span>○ Geri</span><span>□ Yeniden tara</span></div>
+    </div>
+    <div class="note">Edge case: 0 yazıcı → "Bulunamadı. Moonraker'da [zeroconf] açık mı?" + elle ekle. Uzun isimler (47 karakter) … ile kesilir.</div>
+  </div>
+
+  <!-- STATE 3: the everyday screen. Max ~8 facts, large type, readable from arm's length under the monitor. -->
+  <div class="col">
+    <div class="step"><b>3. Günlük ekran.</b> Monitörün altından, kol mesafesinden okunur: en fazla 8 bilgi, büyük sayılar. Tehlikeli işlem (iptal) basılı tut + onay ister.</div>
+    <div class="screen">
+      <div class="bar top"><span>Voron 2.4 · Moonraker</span><span>USB ● bağlı</span></div>
+      <div class="body">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <span class="big">63%</span>
+          <span style="text-align:right"><b>ETA 00:41</b><br><span class="muted">Katman 84/134</span></span>
+        </div>
+        <div class="progress"><i></i></div>
+        <div class="muted" style="margin-top:6px">benchy_0.2mm_PLA.gcode</div>
+        <div class="gauges">
+          <div class="gauge"><div class="muted">Nozzle</div><div class="v">215° <span class="muted">/215</span></div></div>
+          <div class="gauge"><div class="muted">Yatak</div><div class="v">60° <span class="muted">/60</span></div></div>
+        </div>
+      </div>
+      <div class="bar bottom"><span>△ Duraklat</span><span>○ Kamera</span><span>□ Yazıcılar</span><span>L+R basılı: İptal</span></div>
+    </div>
+    <div class="note">Durumlar: boşta (son baskı + "yazıcı hazır"), bitti (büyük ✓ + süre), hata (kırmızı başlık + Klipper mesajı), bağlantı koptu (veri gri + "son güncelleme 12 sn önce").</div>
+  </div>
+
+</div>
+</body>
+</html>
