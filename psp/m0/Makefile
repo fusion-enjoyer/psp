@@ -1,5 +1,5 @@
 TARGET = pspkit_m0
-OBJS = main.o stubs.o
+OBJS = main.o transport.o stubs.o
 
 CFLAGS = -O2 -G0 -Wall
 ASFLAGS = $(CFLAGS)
@@ -26,3 +26,15 @@ dist: EBOOT.PBP $(PSPLINKUSB)/usbhostfs/usbhostfs.prx
 	@echo "Kopyala: dist/PSP -> PSP hafiza kartinin kokune"
 
 .PHONY: dist
+
+# Kablo olmadan test: PPSSPP (Flatpak) hafiza kartina kopyala ve calistir.
+# Flatpak PPSSPP ev dizinini salt-okunur gordugu icin EBOOT kendi
+# hafiza kartinda olmali. Kopru: python3 tools/m0/echo.py --listen
+PPSSPP_MS ?= $(HOME)/.var/app/org.ppsspp.PPSSPP/config/ppsspp
+
+ppsspp: dist
+	mkdir -p $(PPSSPP_MS)/PSP/GAME
+	cp -r $(DIST) $(PPSSPP_MS)/PSP/GAME/
+	flatpak run org.ppsspp.PPSSPP --windowed $(PPSSPP_MS)/PSP/GAME/pspkit_m0/EBOOT.PBP
+
+.PHONY: ppsspp

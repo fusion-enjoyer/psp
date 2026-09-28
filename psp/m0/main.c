@@ -1,17 +1,22 @@
 /*
- * pspkit M0: USB spike.
+ * pspkit M0: link spike.
  *
- * Proves the PSP <-> PC link over usbhostfs async channel 4, which
- * usbhostfs_pc exposes on the PC as localhost TCP port 10004.
+ * Proves the PSP <-> bridge link and measures it. USB (usbhostfs async
+ * channel 4 -> usbhostfs_pc -> localhost:10004) is tried first; when USB is
+ * not available (PPSSPP, no KUBridge) the app falls back to TCP. A tcp.cfg
+ * file next to the EBOOT ("<host> <port>") forces TCP.
  *
- *   PSP -> PC   hello m0 <proto> <fw>
+ *   PSP -> PC   hello m0 <proto> <transport> fw=<hex>
  *               ping <seq> <t_us>          every 500 ms
  *               btn <name> <t_us>          on confirm button
  *               bulk <mode> <bytes>        followed by <bytes> raw bytes
+ *               report <key=value ...>     after the automatic self-test
+ *               frame <w> <h> <fmt> <bytes> followed by <bytes> of pixels
  *   PC -> PSP   pong <seq> <t_us>
  *               ack <name> <t_us>
- *               rate <mode> <bytes> <ms>
+ *               rate <text>
  *               msg <text>
+ *               shot                       request a screenshot
  *
  * Round-trip times are measured on the PSP with the echoed timestamp.
  */
@@ -19,41 +24,41 @@
 #include <pspdebug.h>
 #include <pspdisplay.h>
 #include <pspctrl.h>
-#include <pspusb.h>
-#include <pspusbbus.h>
 #include <psputility.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "usbasync.h"
+#include "transport.h"
 
 PSP_MODULE_INFO("pspkit_m0", PSP_MODULE_USER, 0, 1);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
+PSP_HEAP_SIZE_KB(-1024);
 
 #define printf pspDebugScreenPrintf
 
-#define CHAN              ASYNC_USER
-#define PORT              (10000 + CHAN)
 #define PING_INTERVAL_US  500000
-#define ASYNC_TEST_BYTES  (64 * 1024)
+#define SELFTEST_AFTER    10       /* pongs before the automatic self-test */
+#define STREAM_TEST_BYTES (64 * 1024)
 #define BULK_TEST_BYTES   (256 * 1024)
-#define SCE_KERNEL_ERROR_EXCLUSIVE_LOAD 0x80020139
+#define STATUS_ROW        3
 
-static struct AsyncEndpoint g_endp;
+static transport_t g_t;
 static unsigned char g_bulk[BULK_TEST_BYTES] __attribute__((aligned(64)));
 
 static char g_rx[1024];
 static int  g_rx_len;
+static int  g_link_lost;
 
 static unsigned int g_seq;
 static int g_rtt_last = -1, g_rtt_min = -1, g_rtt_max = -1, g_rtt_count;
 static long long g_rtt_sum;
 static int g_btn_rtt = -1;
+static int g_pongs;
+static int g_stream_kbs = -1, g_bulk_kbs = -1;
 static char g_rate_line[96] = "-";
 static char g_psp_rate_line[96] = "-";
 static char g_msg[64] = "-";
-static int g_pongs;
+static int g_selftest_state; /* 0 waiting, 1 button sent, 2 done */
 
 static int exit_callback(int arg1, int arg2, void *common)
 {
@@ -83,70 +88,65 @@ static long long now_us(void)
 
 static int confirm_is_circle(void)
 {
-	int val = 1; /* PSP_UTILITY_ACCEPT_CROSS */
+	int val = PSP_UTILITY_ACCEPT_CROSS;
 	sceUtilityGetSystemParamInt(PSP_SYSTEMPARAM_ID_INT_UNKNOWN, &val);
-	return val == 0; /* 0 = circle confirms (Asia/Japan) */
+	return val == PSP_UTILITY_ACCEPT_CIRCLE; /* Asia/Japan default */
 }
 
 static void send_line(const char *line)
 {
-	usbAsyncWrite(CHAN, line, strlen(line));
+	if (g_t.write(line, strlen(line)) < 0)
+		g_link_lost = 1;
 }
 
-static void fail(const char *step, int ret)
+static void send_button(void)
 {
-	printf("\n  HATA: %s -> 0x%08X\n", step, ret);
-	printf("  Bu kodu docs/m0.md'deki tabloyla karsilastir.\n");
-	printf("  Cikmak icin HOME.\n");
+	char line[48];
+	snprintf(line, sizeof(line), "btn confirm %lld\n", now_us());
+	send_line(line);
+}
+
+static void halt(const char *why)
+{
+	printf("\n  HATA: %s\n  docs/m0.md 'Bir sey ters giderse' bolumune bak.\n  Cikmak icin HOME.\n", why);
 	sceKernelSleepThreadCB();
 }
 
-/* Load usbhostfs.prx from the EBOOT's folder and start the USB drivers. */
-static int start_usb(const char *argv0)
+/* tcp.cfg next to the EBOOT forces TCP to "<host> <port>". */
+static int read_tcp_cfg(const char *argv0, char *host, int hostlen, int *port)
 {
-	char path[256];
+	char path[256], fmt[16];
 	char *slash;
-	SceUID mod;
-	int ret, status;
+	FILE *f;
+	int ok;
 
-	strncpy(path, argv0, sizeof(path) - 32);
-	path[sizeof(path) - 32] = 0;
+	strncpy(path, argv0, sizeof(path) - 16);
+	path[sizeof(path) - 16] = 0;
 	slash = strrchr(path, '/');
-	strcpy(slash ? slash + 1 : path, "usbhostfs.prx");
+	strcpy(slash ? slash + 1 : path, "tcp.cfg");
+	if (!(f = fopen(path, "r")))
+		return 0;
+	snprintf(fmt, sizeof(fmt), "%%%ds %%d", hostlen - 1);
+	ok = fscanf(f, fmt, host, port) == 2;
+	fclose(f);
+	return ok;
+}
 
-	printf("  usbhostfs.prx yukleniyor...\n  %s\n", path);
-	mod = kuKernelLoadModule(path, 0, NULL);
-	if (mod < 0 && (unsigned)mod != SCE_KERNEL_ERROR_EXCLUSIVE_LOAD) {
-		fail("kuKernelLoadModule", mod);
-		return -1;
-	}
-	if (mod >= 0) {
-		ret = sceKernelStartModule(mod, 0, NULL, &status, NULL);
-		if (ret < 0) {
-			fail("sceKernelStartModule", ret);
-			return -1;
-		}
-	}
-	printf("  modul: 0x%08X\n", mod);
+/* Streams the visible framebuffer to the bridge, which saves it as PNG. */
+static void send_frame(void)
+{
+	void *top;
+	int bufw, fmt, bpp, y;
+	char line[64];
 
-	ret = sceUsbStart(PSP_USBBUS_DRIVERNAME, 0, 0);
-	printf("  sceUsbStart(bus): 0x%08X\n", ret);
-	ret = sceUsbStart(HOSTFSDRIVER_NAME, 0, 0);
-	printf("  sceUsbStart(hostfs): 0x%08X\n", ret);
-	ret = sceUsbActivate(HOSTFSDRIVER_PID);
-	printf("  sceUsbActivate(0x1C9): 0x%08X\n", ret);
-	if (ret < 0) {
-		fail("sceUsbActivate", ret);
-		return -1;
-	}
-
-	ret = usbAsyncRegister(CHAN, &g_endp);
-	printf("  usbAsyncRegister(%d): %d\n", CHAN, ret);
-	if (ret < 0) {
-		fail("usbAsyncRegister", ret);
-		return -1;
-	}
-	return 0;
+	if (sceDisplayGetFrameBuf(&top, &bufw, &fmt, PSP_DISPLAY_SETBUF_IMMEDIATE) < 0 || !top)
+		return;
+	bpp = fmt == PSP_DISPLAY_PIXEL_FORMAT_8888 ? 4 : 2;
+	snprintf(line, sizeof(line), "frame %d %d %d %d\n", 480, 272, fmt, 480 * 272 * bpp);
+	send_line(line);
+	/* Uncached alias so we read what the display actually shows. */
+	for (y = 0; y < 272; y++)
+		g_t.write_bulk((unsigned char *)((unsigned int)top | 0x40000000) + y * bufw * bpp, 480 * bpp);
 }
 
 static void handle_line(char *line)
@@ -169,6 +169,8 @@ static void handle_line(char *line)
 		snprintf(g_rate_line, sizeof(g_rate_line), "%s", line + 5);
 	} else if (strncmp(line, "msg ", 4) == 0) {
 		snprintf(g_msg, sizeof(g_msg), "%s", line + 4);
+	} else if (strcmp(line, "shot") == 0) {
+		send_frame();
 	}
 }
 
@@ -176,9 +178,12 @@ static void poll_rx(int timeout_us)
 {
 	int n, i, start;
 
-	n = usbAsyncReadWithTimeout(CHAN, (unsigned char *)g_rx + g_rx_len,
-				    sizeof(g_rx) - 1 - g_rx_len, timeout_us);
-	if (n <= 0)
+	n = g_t.read(g_rx + g_rx_len, sizeof(g_rx) - 1 - g_rx_len, timeout_us);
+	if (n < 0) {
+		g_link_lost = 1;
+		return;
+	}
+	if (n == 0)
 		return;
 	g_rx_len += n;
 
@@ -198,37 +203,66 @@ static void poll_rx(int timeout_us)
 	}
 }
 
-static void throughput_test(const char *mode, int bytes)
+/* "stream" uses the small-message path, "bulk" the large-transfer path. */
+static int throughput_test(const char *mode, int bytes)
 {
 	char line[64];
 	long long t0, t1;
-	int ret;
+	int ret, kbs;
 
 	snprintf(line, sizeof(line), "bulk %s %d\n", mode, bytes);
 	send_line(line);
 
 	t0 = now_us();
-	if (strcmp(mode, "async") == 0)
-		ret = usbAsyncWrite(CHAN, g_bulk, bytes);
+	if (strcmp(mode, "stream") == 0)
+		ret = g_t.write(g_bulk, bytes);
 	else
-		ret = usbWriteBulkData(CHAN, g_bulk, bytes);
+		ret = g_t.write_bulk(g_bulk, bytes);
 	t1 = now_us();
 
 	if (ret != bytes) {
 		snprintf(g_psp_rate_line, sizeof(g_psp_rate_line), "%s: hata %d", mode, ret);
-		return;
+		return -1;
 	}
+	/* On TCP send() returns once the data is buffered, so only the PC can
+	   time the transfer; on USB the write completes on the wire. */
+	if (strcmp(g_t.name, "tcp") == 0) {
+		snprintf(g_psp_rate_line, sizeof(g_psp_rate_line), "%s %d B gonderildi (hiz: PC olcumu)", mode, bytes);
+		return -1;
+	}
+	kbs = (int)((long long)bytes * 1000000 / 1024 / (t1 - t0 + 1));
 	snprintf(g_psp_rate_line, sizeof(g_psp_rate_line), "%s %d B, %d ms, %d KB/s",
-		 mode, bytes, (int)((t1 - t0) / 1000),
-		 (int)((long long)bytes * 1000000 / 1024 / (t1 - t0 + 1)));
+		 mode, bytes, (int)((t1 - t0) / 1000), kbs);
+	return kbs;
+}
+
+static void selftest_step(void)
+{
+	char line[160];
+
+	if (g_selftest_state == 0 && g_pongs >= SELFTEST_AFTER) {
+		send_button();
+		g_selftest_state = 1;
+	} else if (g_selftest_state == 1 && g_btn_rtt >= 0) {
+		g_stream_kbs = throughput_test("stream", STREAM_TEST_BYTES);
+		g_bulk_kbs = throughput_test("bulk", BULK_TEST_BYTES);
+		snprintf(line, sizeof(line),
+			 /* *_send_kbs is how fast the PSP handed data off; on TCP that is
+			    just the socket buffer, so the PC-side rate is the real one. */
+			 "report transport=%s pongs=%d rtt_min_us=%d rtt_avg_us=%d rtt_max_us=%d btn_us=%d stream_send_kbs=%d bulk_send_kbs=%d\n",
+			 g_t.name, g_pongs, g_rtt_min, (int)(g_rtt_sum / g_rtt_count), g_rtt_max,
+			 g_btn_rtt, g_stream_kbs, g_bulk_kbs);
+		send_line(line);
+		g_selftest_state = 2;
+	}
 }
 
 static void draw(int circle_confirms)
 {
 	const char *confirm = circle_confirms ? "O" : "X";
 
-	pspDebugScreenSetXY(0, 12);
-	printf("  Kanal %d  ->  PC localhost:%d\n\n", CHAN, PORT);
+	pspDebugScreenSetXY(0, STATUS_ROW);
+	printf("  Baglanti: %s  %-40s\n\n", g_t.name, g_t.where);
 	printf("  ping gonderilen: %-8u pong alinan: %-8d\n", g_seq, g_pongs);
 	if (g_rtt_count > 0)
 		printf("  RTT ms  son %-6.1f min %-6.1f ort %-6.1f max %-6.1f\n",
@@ -240,10 +274,13 @@ static void draw(int circle_confirms)
 		printf("  Tus -> PC -> PSP: %.1f ms                              \n", g_btn_rtt / 1000.0f);
 	else
 		printf("  Tus -> PC -> PSP: -  (%s'e bas)                         \n", confirm);
-	printf("\n  PSP olcumu : %-50s\n", g_psp_rate_line);
+	printf("\n  PSP gonderim: %-49s\n", g_psp_rate_line);
 	printf("  PC olcumu  : %-50s\n", g_rate_line);
 	printf("  PC mesaji  : %-50s\n", g_msg);
-	printf("\n  %s: tus gecikmesi  TRIANGLE: async 64KB  SQUARE: bulk 256KB\n", confirm);
+	printf("  Oz-test    : %-50s\n", g_selftest_state == 2 ? "bitti, rapor PC'ye gonderildi" :
+	       g_selftest_state == 1 ? "calisiyor..." : "10 pong sonra otomatik");
+	printf("  %-60s\n", g_link_lost ? "BAGLANTI KOPTU" : "");
+	printf("\n  %s: tus gecikmesi  TRIANGLE: stream 64KB  SQUARE: bulk 256KB\n", confirm);
 	printf("  SELECT: istatistik sifirla   HOME: cikis\n");
 }
 
@@ -252,27 +289,40 @@ int main(int argc, char *argv[])
 	SceCtrlData pad;
 	unsigned int prev = 0, pressed;
 	long long next_ping;
-	char line[96];
-	int circle, i;
+	char line[96], host[32] = TCP_DEFAULT_HOST;
+	int port = TCP_DEFAULT_PORT, circle, i, fatal = 0, ret;
 
 	setup_callbacks();
 	pspDebugScreenInit();
 	sceCtrlSetSamplingCycle(0);
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_DIGITAL);
 
-	printf("\n  pspkit M0 - USB testi\n\n");
-	if (argc < 1 || start_usb(argv[0]) < 0)
+	printf("\n  pspkit M0 - baglanti testi\n\n");
+	if (argc < 1) {
+		halt("argv[0] yok");
 		return 0;
+	}
+
+	if (read_tcp_cfg(argv[0], host, sizeof(host), &port)) {
+		printf("  tcp.cfg bulundu, USB atlaniyor\n");
+		ret = transport_tcp_open(&g_t, host, port);
+	} else if ((ret = transport_usb_open(&g_t, argv[0], &fatal)) < 0 && !fatal) {
+		printf("  USB yok (PPSSPP ya da KUBridge yok), TCP deneniyor\n");
+		ret = transport_tcp_open(&g_t, host, port);
+	}
+	if (ret < 0) {
+		snprintf(line, sizeof(line), "%s acilamadi (0x%08X)", fatal ? "USB" : "TCP", ret);
+		halt(line);
+		return 0;
+	}
 
 	for (i = 0; i < BULK_TEST_BYTES; i++)
 		g_bulk[i] = (unsigned char)(i & 0xFF);
 
-	printf("\n  PC bekleniyor: usbhostfs_pc calistir...\n");
-	usbWaitForConnect();
-	printf("  USB bagli.\n");
-
+	pspDebugScreenClear();
+	printf("\n  pspkit M0 - baglanti testi\n");
 	circle = confirm_is_circle();
-	snprintf(line, sizeof(line), "hello m0 0 fw=%08X\n", sceKernelDevkitVersion());
+	snprintf(line, sizeof(line), "hello m0 0 %s fw=%08X\n", g_t.name, sceKernelDevkitVersion());
 	send_line(line);
 
 	next_ping = now_us();
@@ -289,12 +339,10 @@ int main(int argc, char *argv[])
 		pressed = pad.Buttons & ~prev;
 		prev = pad.Buttons;
 
-		if (pressed & (circle ? PSP_CTRL_CIRCLE : PSP_CTRL_CROSS)) {
-			snprintf(line, sizeof(line), "btn confirm %lld\n", now_us());
-			send_line(line);
-		}
+		if (pressed & (circle ? PSP_CTRL_CIRCLE : PSP_CTRL_CROSS))
+			send_button();
 		if (pressed & PSP_CTRL_TRIANGLE)
-			throughput_test("async", ASYNC_TEST_BYTES);
+			throughput_test("stream", STREAM_TEST_BYTES);
 		if (pressed & PSP_CTRL_SQUARE)
 			throughput_test("bulk", BULK_TEST_BYTES);
 		if (pressed & PSP_CTRL_SELECT) {
@@ -304,6 +352,7 @@ int main(int argc, char *argv[])
 		}
 
 		poll_rx(16000); /* ~60 Hz loop, also our frame pacing */
+		selftest_step();
 		draw(circle);
 	}
 

@@ -16,7 +16,10 @@ Test rehberi: [docs/m0.md](docs/m0.md)
 - [ ] **PSP-2006 üzerinde çalıştır** ve sonuçları kaydet
 - [ ] Soru: user-mode EBOOT'tan usbhostfs'e geç bağlanma çalışıyor mu (KUBridge + late-link)? Çalışmıyorsa plan B: küçük bir kernel PRX
 - [ ] Gecikmeyi ölç (Deck hedefi: tuşa basıştan aksiyona < 100ms)
-- [ ] M0b: Aynı EBOOT PPSSPP'de TCP soketiyle pong alsın (PPSSPP kurulumu gerekli)
+- [x] M0b: Taşıma katmanı (`transport.c`: USB → 15 sn içinde PC gelmezse TCP'ye geçiş, `tcp.cfg` ile zorlama). PPSSPP 1.20.4 (Flatpak) üzerinde uçtan uca çalıştı: ping/pong, tuş ack, stream/bulk, öz-test raporu
+- [x] PPSSPP'de KUBridge + usbhostfs.prx yüklemesi ve sonradan bağlanma (late-link) çalışıyor. Gerçek donanımda hâlâ doğrulanmalı
+- [x] Köprü üzerinden ekran görüntüsü (`shot` → `frame` → PNG); gerçek PSP'de de işe yarar
+- [x] `make -C psp/m0 ppsspp`: kablo olmadan tek komutla test
 
 ## Deck D1: çekirdek + ilk çalışan tuş
 - [ ] Repo iskeleti: `psp/libpspkit/`, `psp/apps/deck/`, `bridge/`, `desktop/`, `docs/`

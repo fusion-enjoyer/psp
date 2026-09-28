@@ -162,7 +162,7 @@ v1'de bu dört paketin hepsi Moonraker üzerinde eksiksiz çalışır. Diğer ad
 
 ## Open Questions
 
-1. **usbhostfs async kanalları kullanıcı modundaki bir EBOOT'tan çağrılabiliyor mu,** yoksa ARK-4 altında küçük bir kernel PRX mi gerekiyor? (M0 bunu yanıtlayacak.)
+1. **usbhostfs async kanalları kullanıcı modundaki bir EBOOT'tan çağrılabiliyor mu,** yoksa ARK-4 altında küçük bir kernel PRX mi gerekiyor? *Kısmi cevap (M0b):* PPSSPP'de KUBridge ile yükleme ve sonradan bağlanma (late-link) çalışıyor. Gerçek PSP-2006'da USB kablosuyla doğrulanacak.
 2. ~~`psplinkusb` lisansı nedir?~~ **Cevaplandı (M0):** BSD-3-Clause. `third_party/psplinkusb` submodule'ü olarak pinlendi; `usbhostfs.prx` EBOOT'un yanında dağıtılıyor. API user-mode için de export ediliyor (`USBHostFS`, attr 0x4001); kanal N, PC'de `localhost:10000+N` portuna açılıyor; VID:PID `054c:01c9`.
 3. usbhostfs'in gerçek veri hızı ne? Kamera için gereken yaklaşık hesap: 480x272 JPEG kare başına ~20-30KB × 10 FPS ≈ 250KB/s. Yeterli olmalı ama ölçülmeli.
 4. PSP-1000'in 32MB belleğinde kamera ve 3D özellikleri sığıyor mu? Sığmıyorsa o modelde otomatik kapatılmalı.
