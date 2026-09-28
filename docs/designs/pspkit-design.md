@@ -132,6 +132,15 @@ Bağımsız bir Claude alt ajanı (sıfır bağlam) ikinci görüş verdi. Codex
 - Mikrofon PC'den kapatıldığında karo da kırmızıya döner (iki yönlü durum).
 - X11 ve Wayland oturumlarında klavye kısayolları çalışır.
 
+### Deck MVP: uygulamada plandan sapmalar (2026-09-28)
+
+- **Yerleşim:** 4x3 ızgara yerine kumanda şekli kullanıldı: solda d-pad haçı, sağda △○✕□ elması, ortada SELECT/START ve katman göstergesi. Böylece her karo ekranda, bağlı olduğu tuşun olduğu yerde duruyor.
+- **Protokol:** Uzunluk önekli JSON yerine boşlukla ayrılmış metin satırları kullanıldı (`tile normal cross 3ddc84 0 Etiket`). PSP tarafında `sscanf` yetiyor ve cJSON bağımlılığı gerekmiyor. İkili veri sadece ekran görüntüsünde var (`frame` başlığı + ham piksel).
+- **Metin:** PSP'nin 8x8 fontunda Türkçe karakter yok. Köprü PSP'ye giden her metni ASCII'ye çeviriyor (`to_psp`). PC tarafındaki arayüz, komut satırı ve ayarlar tam Türkçe.
+- **uinput:** python-evdev yerine saf Python (`fcntl.ioctl`) kullanıldı, bağımlılık yok. Ubuntu'da logind `/dev/uinput`'a kullanıcı ACL'si veriyor, sudo gerekmiyor.
+- **OBS:** websockets kütüphanesi yerine stdlib ile minimal bir obs-websocket v5 istemcisi yazıldı.
+- **Test yöntemi:** PPSSPP'nin uzaktan debugger'ı açılınca yerel IP'yi `report.ppsspp.org`'a bildirdiği için kullanılmadı. Onun yerine köprü üzerinden `shot` (ekran görüntüsü) ve `sim` (tuş simülasyonu) eklendi.
+
 ### Printer v1 kapsamı (Deck'ten sonra; kullanıcı kararı: 4 paketin hepsi)
 
 Referans tel kafes (akışın 3 ekranı, 480x272): [`printer-flow-wireframe.png`](printer-flow-wireframe.png) (kaynak: [`printer-flow-wireframe.html`](printer-flow-wireframe.html)). Ekranlar: (1) "USB kablosunu PC'ye tak" bekleme ekranı; (2) mDNS ile bulunan yazıcıların listesi, sadece ilk seferde; (3) günlük ekran: yüzde, ETA, katman, dosya, nozzle/yatak gauge'ları ve tuş ipuçları. Tasarım ilkesi: kol mesafesinden okunabilmeli, ekranda en fazla 8 bilgi olmalı.

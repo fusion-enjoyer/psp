@@ -21,42 +21,33 @@ Test rehberi: [docs/m0.md](docs/m0.md)
 - [x] Köprü üzerinden ekran görüntüsü (`shot` → `frame` → PNG); gerçek PSP'de de işe yarar
 - [x] `make -C psp/m0 ppsspp`: kablo olmadan tek komutla test
 
-## Deck D1: çekirdek + ilk çalışan tuş
-- [ ] Repo iskeleti: `psp/libpspkit/`, `psp/apps/deck/`, `bridge/`, `desktop/`, `docs/`
-- [ ] Protokol v0: `hello`, `state`, `cmd`, `ack/err`, ikili `frame`; `proto_version` alanı
-- [ ] libpspkit: taşıma katmanı (USB / TCP otomatik seçim), çerçeveleme (cJSON), handshake
-- [ ] libpspkit: durum makinesi (bekleniyor → bağlı → koptu → yeniden bağlan)
-- [ ] libpspkit: bölgeye duyarlı ○/✕ (sistem ayarından okunur)
-- [ ] libpspkit widget'ları: durum çubuğu, ipucu çubuğu, karo ızgarası, toast
-- [ ] EBOOT: large-memory flag (PSP-1000'de 32MB ile de düzgün çalışsın)
-- [ ] Köprü çekirdeği (Python asyncio): bağlantı, `hello` üzerinden eklentiye yönlendirme
-- [ ] `deck.yaml` şeması ve yükleyici (`~/.config/pspkit/deck.yaml`), dosya izleme ve canlı yenileme
-- [ ] Deck EBOOT: fiziksel tuş modu (4x3 karo, her karoda tuş işareti)
-- [ ] Aksiyon eklenti arayüzü (köprü)
-- [ ] Aksiyon: klavye kısayolu, uinput sanal klavye (python-evdev) ile. X11 ve Wayland'de test
-- [ ] Aksiyon: komut çalıştır, uygulama/URL aç
-- [ ] Tak-çalıştır: udev kuralı (PSP + `/dev/uinput` izni) ile systemd user servisi, `usbhostfs_pc`'nin otomatik başlaması
+## Deck MVP (2026-09-28): PPSSPP'de uçtan uca çalışıyor, 21 test
+Rehber: [docs/deck.md](docs/deck.md)
 
-## Deck D2: katmanlar + canlı durum
-- [ ] L, R ve L+R katmanları
-- [ ] Analog çubuk çevirme düğmesi (ses, scroll), ölü bölge ve ivme ayarı
-- [ ] İki yönlü durum: köprü karoya renk/etiket/ikon güncellemesi yollar
-- [ ] Aksiyon: medya (MPRIS / D-Bus), şu an çalan parçanın karoda gösterimi
-- [ ] Aksiyon: ses seviyesi ve mikrofon mute (`wpctl`/`pactl`), mute durumunun karoda gösterimi
-- [ ] Aksiyon: OBS (obs-websocket v5) ile sahne, kayıt/yayın, kaynak; aktif sahne ve REC durumu
+### Yapıldı
+- [x] Repo iskeleti: `psp/libpspkit/`, `psp/apps/deck/`, `bridge/pspkit/`, `desktop/`, `scripts/`
+- [x] libpspkit: USB/TCP taşıma (otomatik seçim, `tcp.cfg`), saniyede bir yeniden bağlanma, satır protokolü, ekran görüntüsü (`shot`/`frame`)
+- [x] libpspkit: çift tamponlu yazılım çizimi (dikdörtgen, çizgi, daire, üçgen, 8x8 font, △○✕□ ve ok sembolleri)
+- [x] Deck EBOOT: kumanda şeklinde yerleşim, 10 tuş × 4 katman (L, R, L+R), analog çubuk, canlı durum, bildirimler, gecikme göstergesi, uyku engelleme (`scePowerTick`)
+- [x] Protokol v1: `hello`/`press`/`analog`/`ping` ↔ `clear`/`tile`/`analog`/`title`/`toast`/`ack`/`shot`/`sim`
+- [x] Köprü (asyncio, stdlib + PyYAML): TCP 10200 + USB (localhost:10004, `usbhostfs_pc`'yi kendisi başlatıyor, host0 = boş klasör), SIGTERM ile temiz kapanma
+- [x] `deck.yaml`: doğrulama, okunur hata mesajları, canlı yenileme; bozuk dosyada önceki ayarı koruyup hatayı PSP'de gösterme
+- [x] Aksiyonlar: klavye (saf Python uinput, X11 + Wayland), komut, aç (xdg-open), medya (MPRIS), ses ve mikrofon (wpctl/pactl), OBS (stdlib websocket v5, kimlik doğrulamalı)
+- [x] Canlı durum: ses %, sessiz, mikrofon kapalı, çalan parça, aktif OBS sahnesi, REC/CANLI
+- [x] Kontrol soketi + CLI: `run`, `status`, `shot`, `sim`, `actions`, `init`, `doctor`
+- [x] PySide6 ayar uygulaması: PSP şeklinde önizleme, katman sekmeleri, aksiyon formları katalogdan, renk paleti, analog ataması, OBS ayarı, "Dene", PSP ekran görüntüsü, otomatik kaydetme, dosya dışarıdan değişince yeniden yükleme
+- [x] `scripts/install.sh`: komutlar, systemd user servisi, menü girişi, `--uninstall`; udev kuralı `uaccess` ile
+- [x] Testler: 21 unittest (metin, ayar, tuş ayrıştırma, sahte OBS sunucusu, sahte PSP ile uçtan uca köprü)
 
-## Deck D3: masaüstü ayar uygulaması (PySide6)
-- [ ] Daemon ↔ uygulama yerel soket API'si (yapılandırmayı oku/yaz, bağlantı durumu, aksiyon kataloğu)
-- [ ] PSP ekranı önizlemesi (4x3, tuş işaretleri) ve katman sekmeleri (Normal / L / R / L+R) + analog ataması
-- [ ] Kategorili aksiyon seçici, eklentilerden otomatik doldurulan
-- [ ] İkon, renk ve etiket seçimi; ikonları PSP'ye uygun boyuta dönüştürme
-- [ ] "PSP bağlı" göstergesi, kaydedince canlı güncelleme
-- [ ] `.desktop` dosyası ve uygulama menüsü girişi
-
-## Deck D4: cila + teaser
-- [ ] İmleçli ızgara modu (Select'e uzun basınca)
-- [ ] Varsayılan ikon paketi ve örnek `deck.yaml` (yayıncı, geliştirici, müzik profilleri)
-- [ ] `pspkit-bridge doctor` teşhis komutu
+### Kalan
+- [ ] **Gerçek PSP-2006'da USB ile çalıştır** (M0'daki açık sorular burada da geçerli)
+- [ ] Analog çubuk gerçek cihazda: ölü bölge / hız ayarı (protokol testte doğrulandı, PPSSPP'de elle denenmedi)
+- [ ] Gerçek OBS ile deneme (şimdilik sahte sunucuyla test edildi)
+- [ ] İmleçli ızgara modu (Select'e uzun basınca) ve sayfalar
+- [ ] Karo ikonları (köprü küçük bitmap gönderir)
+- [ ] Hazır profiller: yayıncı, geliştirici, müzik
+- [ ] PSP-1000 (32MB) testi
+- [ ] Companion Satellite eklentisi, Home Assistant aksiyonu, çok adımlı makrolar
 - [ ] **Reddit teaser videosu** (r/PSP, r/linux, r/streaming)
 
 ## Printer (Deck'ten sonra)

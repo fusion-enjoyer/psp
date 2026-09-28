@@ -1,0 +1,3 @@
+# pspkit: PSP running a pspkit app (usbhostfs, 054c:01c9). uaccess gives the
+# logged-in user access, instead of making the device world-writable.
+SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="01c9", TAG+="uaccess"
