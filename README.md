@@ -2,7 +2,7 @@
 
 PSP'yi masanda gerçekten iş gören bir kontrol paneline çevirir. PSP'yi USB ile Linux PC'ye ya da Raspberry Pi'a takarsın, XMB'den uygulamayı açarsın, çalışır.
 
-İlk uygulama **Printer**: 3D yazıcı paneli. Canlı kamera, ilk katmanda L/R ile Z ayarı, dosya/filament yönetimi ve PSP'nin GPU'suyla 3D bed mesh içerir. Sonra sırayla Deck, Media, MIDI ve Dev gelecek.
+İlk uygulama **Deck**: Stream Deck tarzı makro paneli. Her karo bir PSP tuşuna bağlı, L/R ile katmanlar, analog çubuk çevirme düğmesi gibi çalışıyor. Karolar bir masaüstü uygulamasıyla (PySide6) ayarlanıyor. Sonra **Printer** (3D yazıcı paneli) gelecek, ardından Media, MIDI ve Dev.
 
 > Durum: tasarım aşaması, henüz kod yok.
 

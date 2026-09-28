@@ -1,7 +1,7 @@
 # İş Planı
 
-Kaynak: [docs/designs/pspkit-design.md](docs/designs/pspkit-design.md) (2026-09-28 /office-hours oturumu).
-Kararlar: Yaklaşım D (ayrı uygulamalar + ortak `libpspkit` + tek köprü). USB ve Linux (Pi dahil) ile başlanıyor. Referans cihaz PSP-2000. Printer v1'e dört paketin hepsi giriyor.
+Kaynak: [docs/designs/pspkit-design.md](docs/designs/pspkit-design.md) (2026-09-28 /office-hours oturumu ve aynı gün yapılan revizyon).
+Kararlar: Yaklaşım D (ayrı uygulamalar + ortak `libpspkit` + tek köprü). USB ve Linux (Pi dahil) ile başlanıyor. Referans cihaz PSP-2000. **Sıra: Deck → Printer** (test edilebilecek yazıcı yok, PSP ve Linux PC var). Deck'in ayar uygulaması PySide6 ile yazılacak.
 
 ## M0: USB spike (her şeyden önce)
 Mimarinin tamamı bu adımın sonucuna bağlı.
@@ -14,62 +14,64 @@ Mimarinin tamamı bu adımın sonucuna bağlı.
 - [ ] Host tarafında 20 satırlık Python: `usbhostfs_pc` TCP portuna bağlanıp echo yapsın
 - [ ] Soru: async kanallar user-mode EBOOT'tan çağrılabiliyor mu, yoksa kernel PRX mi gerekiyor?
 - [ ] Aynı EBOOT PPSSPP'de TCP soketiyle pong alsın
-- [ ] Veri hızını ölç (kamera için ~250KB/s gerekiyor)
+- [ ] Gecikmeyi ölç (Deck hedefi: tuşa basıştan aksiyona < 100ms)
 
-## M1: Çekirdek + ilk ekran
-- [ ] Repo iskeleti: `psp/libpspkit/`, `psp/apps/printer/`, `bridge/`, `docs/`
+## Deck D1: çekirdek + ilk çalışan tuş
+- [ ] Repo iskeleti: `psp/libpspkit/`, `psp/apps/deck/`, `bridge/`, `desktop/`, `docs/`
 - [ ] Protokol v0: `hello`, `state`, `cmd`, `ack/err`, ikili `frame`; `proto_version` alanı
 - [ ] libpspkit: taşıma katmanı (USB / TCP otomatik seçim), çerçeveleme (cJSON), handshake
 - [ ] libpspkit: durum makinesi (bekleniyor → bağlı → koptu → yeniden bağlan)
-- [ ] libpspkit: bölgeye duyarlı ○/✕ tuş ipuçları (sistem ayarından okunur)
-- [ ] libpspkit widget'ları: durum çubuğu, ipucu çubuğu, progress, gauge, liste, toast, onay, basılı-tut
-- [ ] EBOOT: 64MB için large-memory flag (PSP-1000'de 32MB ile düzgün çalışmaya devam etsin)
-- [ ] Köprü çekirdeği (Python asyncio): bağlantı, `hello` üzerinden eklenti yönlendirme
-- [ ] Printer arayüzü + Moonraker adaptörü (websocket aboneliği)
-- [ ] Sahte Moonraker: kayıt/tekrar test fikstürü
-- [ ] mDNS keşfi (`python-zeroconf`), seçimin `~/.config/pspkit/` altında hatırlanması
-- [ ] Tel kafesteki 3 ekran: bekleme, yazıcı listesi, günlük ekran
-- [ ] Tak-çalıştır: udev kuralı ile systemd user servisi, `usbhostfs_pc`'nin otomatik başlaması
+- [ ] libpspkit: bölgeye duyarlı ○/✕ (sistem ayarından okunur)
+- [ ] libpspkit widget'ları: durum çubuğu, ipucu çubuğu, karo ızgarası, toast
+- [ ] EBOOT: large-memory flag (PSP-1000'de 32MB ile de düzgün çalışsın)
+- [ ] Köprü çekirdeği (Python asyncio): bağlantı, `hello` üzerinden eklentiye yönlendirme
+- [ ] `deck.yaml` şeması ve yükleyici (`~/.config/pspkit/deck.yaml`), dosya izleme ve canlı yenileme
+- [ ] Deck EBOOT: fiziksel tuş modu (4x3 karo, her karoda tuş işareti)
+- [ ] Aksiyon eklenti arayüzü (köprü)
+- [ ] Aksiyon: klavye kısayolu, uinput sanal klavye (python-evdev) ile. X11 ve Wayland'de test
+- [ ] Aksiyon: komut çalıştır, uygulama/URL aç
+- [ ] Tak-çalıştır: udev kuralı (PSP + `/dev/uinput` izni) ile systemd user servisi, `usbhostfs_pc`'nin otomatik başlaması
+
+## Deck D2: katmanlar + canlı durum
+- [ ] L, R ve L+R katmanları
+- [ ] Analog çubuk çevirme düğmesi (ses, scroll), ölü bölge ve ivme ayarı
+- [ ] İki yönlü durum: köprü karoya renk/etiket/ikon güncellemesi yollar
+- [ ] Aksiyon: medya (MPRIS / D-Bus), şu an çalan parçanın karoda gösterimi
+- [ ] Aksiyon: ses seviyesi ve mikrofon mute (`wpctl`/`pactl`), mute durumunun karoda gösterimi
+- [ ] Aksiyon: OBS (obs-websocket v5) ile sahne, kayıt/yayın, kaynak; aktif sahne ve REC durumu
+
+## Deck D3: masaüstü ayar uygulaması (PySide6)
+- [ ] Daemon ↔ uygulama yerel soket API'si (yapılandırmayı oku/yaz, bağlantı durumu, aksiyon kataloğu)
+- [ ] PSP ekranı önizlemesi (4x3, tuş işaretleri) ve katman sekmeleri (Normal / L / R / L+R) + analog ataması
+- [ ] Kategorili aksiyon seçici, eklentilerden otomatik doldurulan
+- [ ] İkon, renk ve etiket seçimi; ikonları PSP'ye uygun boyuta dönüştürme
+- [ ] "PSP bağlı" göstergesi, kaydedince canlı güncelleme
+- [ ] `.desktop` dosyası ve uygulama menüsü girişi
+
+## Deck D4: cila + teaser
+- [ ] İmleçli ızgara modu (Select'e uzun basınca)
+- [ ] Varsayılan ikon paketi ve örnek `deck.yaml` (yayıncı, geliştirici, müzik profilleri)
 - [ ] `pspkit-bridge doctor` teşhis komutu
+- [ ] **Reddit teaser videosu** (r/PSP, r/linux, r/streaming)
 
-## M2: Göz
-- [ ] Köprü: ffmpeg ile MJPEG akışını 480x272'ye küçült ve ikili frame olarak yolla
-- [ ] PSP: sceJpeg donanım çözücüsüyle 5-10 FPS kamera görünümü
-- [ ] Timelapse'i PSP uyumlu H.264 MP4'e çevir (profil/seviye araştırılacak), Media Engine ile oynat
-- [ ] Baskı bitti / hata alarmı (ses ve ekran)
-- [ ] Obico entegrasyonu (spaghetti algılama → alarm → tek tuşla duraklatma)
-- [ ] **Reddit teaser videosu** (erken ilgiyi ölçmek için)
-
-## M3: Eller
-- [ ] Köprüde güvenlik kuralları: hareket sadece boşta/duraklatılmışken, baby-step toplam ±0.5mm, iptal için basılı tut + onay
-- [ ] L/R ile baby-step (0.01mm), kamera açıkken
-- [ ] Analog çubukla X/Y, d-pad ile Z; home; extrude
-- [ ] Preheat presetleri (PLA/PETG/ABS), Klipper makro listesi
-- [ ] Moonraker power device ile aç/kapa
-
-## M4: Dosya ve filament
-- [ ] Thumbnail'li G-code tarayıcı, onaylı baskı başlatma
-- [ ] Spoolman: kalan filament, "bu baskıya yetmiyor" uyarısı
-- [ ] Geçmiş ve istatistik
-
-## M5: PSP GPU
-- [ ] GU ile 3D bed mesh (analog çubukla döndürme)
-- [ ] 3D katman önizleme (köprü geometriyi sadeleştirip gönderir)
-- [ ] Sıcaklık grafiği (son 10 dk)
-- [ ] Çiftlik görünümü (2x2 karo, L/R ile geçiş)
-- [ ] Ambient mod (saat, son baskının fotoğrafı, ekranı kısma)
-- [ ] PSP-1000 (32MB) bellek testi: sığmayan özellik otomatik kapansın
+## Printer (Deck'ten sonra)
+- [ ] P1: Printer arayüzü + Moonraker adaptörü, sahte Moonraker test fikstürü, mDNS keşfi, tel kafesteki 3 ekran
+- [ ] P2 Göz: ffmpeg ile MJPEG akışı ve sceJpeg; H.264 timelapse; bitti/hata alarmı; Obico
+- [ ] P3 Eller: köprüde güvenlik kuralları; L/R ile baby-step; jog; preheat; makrolar; güç kontrolü
+- [ ] P4 Dosya ve filament: thumbnail'li G-code tarayıcı, Spoolman, geçmiş
+- [ ] P5 PSP GPU: 3D bed mesh, 3D katman önizleme, sıcaklık grafiği, çiftlik görünümü, ambient mod
+- [ ] OctoPrint adaptörü (durum ve temel kontrol)
 
 ## Lansman (v1)
-- [ ] İkinci adaptör: OctoPrint (durum ve temel kontrol)
 - [ ] CI: pspdev Docker ile EBOOT build'i, pytest, tag'de otomatik GitHub Release
-- [ ] `install.sh` (x86_64 + aarch64/Pi): udev, systemd, köprü kurulumu
+- [ ] `install.sh` (x86_64 + aarch64/Pi): udev, systemd, köprü ve masaüstü uygulaması kurulumu
 - [ ] Proje adı (`pspkit` yer tutucu), çakışma kontrolü
-- [ ] 30 saniyelik video ve paylaşım: r/PSP, r/klippers, r/3Dprinting
+- [ ] 30 saniyelik video ve paylaşım
 
 ## Sonrası (talebe göre)
-- [ ] Adaptörler: PrusaLink, Home Assistant (her şeyi kapsayan yol), Bambu (LAN-only + Developer Mode)
-- [ ] Deck (Companion Satellite + yerel makrolar), Media (MPRIS), MIDI (python-rtmidi), Dev (CI/metrikler)
+- [ ] Deck: Companion Satellite eklentisi, Home Assistant, çok adımlı makrolar, sayfalar
+- [ ] Adaptörler: PrusaLink, Home Assistant, Bambu (LAN-only + Developer Mode)
+- [ ] Media (MPRIS tam ekran uygulama), MIDI (python-rtmidi), Dev (CI/metrikler)
 - [ ] Wi-Fi taşıma katmanı (stok firmware'de WPA2-PSK desteği doğrulanacak)
-- [ ] Windows (Zadig/WCID)
+- [ ] Windows (Zadig/WCID; PySide6 uygulaması aynı kodla çalışır)
 - [ ] Generic server-driven uygulama
