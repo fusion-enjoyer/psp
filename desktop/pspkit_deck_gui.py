@@ -21,11 +21,11 @@ from PySide6.QtCore import QObject, QPoint, QRect, QSize, Qt, QTimer, Signal  # 
 from PySide6.QtGui import QAction, QColor, QFont, QPainter, QPen, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog,  # noqa: E402
                                QDialogButtonBox, QFormLayout, QGroupBox, QHBoxLayout,
-                               QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton,
+                               QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QPushButton,
                                QSpinBox, QTabBar, QVBoxLayout, QWidget)
 
 from pspkit import control  # noqa: E402
-from pspkit.deck import actions, config as deck_config  # noqa: E402
+from pspkit.deck import actions, config as deck_config, profiles  # noqa: E402
 from pspkit.uinput import parse_combo  # noqa: E402
 
 SCALE = 1.5
@@ -226,6 +226,12 @@ class MainWindow(QMainWindow):
         shot = QPushButton("PSP ekran görüntüsü")
         shot.clicked.connect(self._screenshot)
         top.addWidget(shot)
+        profile = QPushButton("Profil...")
+        menu = QMenu(profile)
+        for name in profiles.names():
+            menu.addAction(profiles.TITLES.get(name, name), lambda n=name: self._load_profile(n))
+        profile.setMenu(menu)
+        top.addWidget(profile)
         left.addLayout(top)
 
         self.tabs = QTabBar()
@@ -456,6 +462,25 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             self.cfg["obs"] = dlg.value()
             self._schedule_save()
+
+    def _load_profile(self, name: str):
+        title = profiles.TITLES.get(name, name)
+        answer = QMessageBox.question(
+            self, "Profil yükle",
+            f"'{title}' profili yüklensin mi?\n\nŞu anki ayarların {self.path.name}.bak olarak yedeklenir.")
+        if answer != QMessageBox.Yes:
+            return
+        self._save_timer.stop()
+        try:
+            profiles.apply(name, self.path)
+            self.cfg = deck_config.load(self.path)
+        except deck_config.ConfigError as e:
+            self.error.setText(str(e))
+            return
+        self._stamp = self._file_stamp()
+        self.title.setText(self.cfg["title"])
+        self._select(self.button)
+        self.statusBar().showMessage(f"'{title}' yüklendi, PSP güncelleniyor", 3000)
 
     def _schedule_save(self):
         self.pad.update()

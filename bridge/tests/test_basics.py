@@ -84,5 +84,23 @@ class ConfigTest(unittest.TestCase):
         self.assertFalse(self.path.exists())
 
 
+class ProfileTest(unittest.TestCase):
+    def test_every_profile_is_valid_and_backs_up(self):
+        from pspkit.deck import profiles
+
+        self.assertEqual(profiles.names()[0], "genel")
+        self.assertGreaterEqual(len(profiles.names()), 4)
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d) / "deck.yaml"
+            self.assertIsNone(profiles.apply("genel", target))
+            for name in profiles.names():
+                backup = profiles.apply(name, target)
+                cfg = config.load(target)
+                self.assertTrue(any(cfg["layers"].values()), name)
+                self.assertTrue(backup and backup.exists())
+            with self.assertRaises(config.ConfigError):
+                profiles.apply("yok", target)
+
+
 if __name__ == "__main__":
     unittest.main()

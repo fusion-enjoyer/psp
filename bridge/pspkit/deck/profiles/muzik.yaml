@@ -1,0 +1,20 @@
+# Profil: Müzik. Oynatıcı kontrolü, ses ve mikrofon. Oynat karosu çalan
+# parçanın adını gösterir (Spotify, tarayıcı, VLC... MPRIS destekleyen her şey).
+version: 1
+title: Müzik Deck
+analog: {normal: volume, l: none, r: none, lr: none}
+layers:
+  normal:
+    up:       {label: "Ses +", color: "#3d8bfd", action: volume, op: up, step: 5}
+    down:     {label: "Ses -", color: "#3d8bfd", action: volume, op: down, step: 5}
+    left:     {label: "Önceki", color: "#a371f7", action: media, op: previous}
+    right:    {label: "Sonraki", color: "#a371f7", action: media, op: next}
+    circle:   {label: "Oynat", color: "#a371f7", action: media, op: play_pause}
+    cross:    {label: "Durdur", color: "#6b7280", action: media, op: stop}
+    triangle: {label: "Mikrofon", color: "#f04e4e", action: mic, op: toggle}
+    square:   {label: "Spotify", color: "#3ddc84", action: open, target: "https://open.spotify.com"}
+    select:   {label: "Sessiz", color: "#6b7280", action: volume, op: mute}
+    start:    {label: "Ses|Ayarları", color: "#14b8a6", action: command, cmd: "gnome-control-center sound"}
+  l:
+    up:       {label: "Ses +1", color: "#3d8bfd", action: volume, op: up, step: 1}
+    down:     {label: "Ses -1", color: "#3d8bfd", action: volume, op: down, step: 1}

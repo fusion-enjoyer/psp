@@ -1,0 +1,29 @@
+# Profil: Yayıncı. OBS sahneleri, kayıt/yayın ve ses. OBS'te WebSocket
+# sunucusunu aç, şifreyi masaüstü uygulamasındaki "OBS..." ile gir.
+version: 1
+title: Yayın Deck
+analog: {normal: volume, l: none, r: scroll, lr: none}
+obs: {host: 127.0.0.1, port: 4455, password: ""}
+layers:
+  normal:
+    up:       {label: "Sahne|Kamera", color: "#8b5cf6", action: obs, op: scene, scene: "Kamera"}
+    left:     {label: "Sahne|Ekran", color: "#8b5cf6", action: obs, op: scene, scene: "Ekran"}
+    right:    {label: "Sahne|Sohbet", color: "#8b5cf6", action: obs, op: scene, scene: "Sohbet"}
+    down:     {label: "Sahne|Ara", color: "#8b5cf6", action: obs, op: scene, scene: "Ara"}
+    triangle: {label: "KAYIT", color: "#f04e4e", action: obs, op: record}
+    circle:   {label: "YAYIN", color: "#f04e4e", action: obs, op: stream}
+    square:   {label: "OBS Mic", color: "#f5a524", action: obs, op: mute_input, input: "Mic/Aux"}
+    cross:    {label: "Masaüstü|Ses", color: "#f5a524", action: obs, op: mute_input, input: "Desktop Audio"}
+    select:   {label: "Mikrofon", color: "#f04e4e", action: mic, op: toggle}
+    start:    {label: "Ekran|Resmi", color: "#14b8a6", action: key, keys: "print"}
+  l:
+    up:       {label: "Ses +", color: "#3d8bfd", action: volume, op: up, step: 5}
+    down:     {label: "Ses -", color: "#3d8bfd", action: volume, op: down, step: 5}
+    left:     {label: "Önceki", color: "#a371f7", action: media, op: previous}
+    right:    {label: "Sonraki", color: "#a371f7", action: media, op: next}
+    circle:   {label: "Oynat", color: "#a371f7", action: media, op: play_pause}
+    select:   {label: "Sessiz", color: "#6b7280", action: volume, op: mute}
+  r:
+    triangle: {label: "OBS Aç", color: "#3ddc84", action: command, cmd: "obs"}
+    circle:   {label: "Twitch|Panel", color: "#a371f7", action: open, target: "https://dashboard.twitch.tv"}
+    square:   {label: "YouTube|Studio", color: "#f04e4e", action: open, target: "https://studio.youtube.com"}

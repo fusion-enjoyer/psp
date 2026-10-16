@@ -1,0 +1,28 @@
+# Profil: Geliştirici. VS Code kısayolları, terminal, git ve tarayıcı.
+version: 1
+title: Dev Deck
+analog: {normal: scroll, l: volume, r: none, lr: none}
+layers:
+  normal:
+    up:       {label: "Satıra|Git", color: "#3d8bfd", action: key, keys: "ctrl+g"}
+    down:     {label: "Tanıma|Git", color: "#3d8bfd", action: key, keys: "f12"}
+    left:     {label: "Geri", color: "#6b7280", action: key, keys: "ctrl+alt+minus"}
+    right:    {label: "Dosya|Bul", color: "#14b8a6", action: key, keys: "ctrl+p"}
+    triangle: {label: "Komut|Paleti", color: "#a371f7", action: key, keys: "ctrl+shift+p"}
+    circle:   {label: "Çalıştır", color: "#3ddc84", action: key, keys: "f5"}
+    square:   {label: "Projede|Ara", color: "#f5a524", action: key, keys: "ctrl+shift+f"}
+    cross:    {label: "Yorum", color: "#6b7280", action: key, keys: "ctrl+slash"}
+    select:   {label: "Terminal|Göster", color: "#3ddc84", action: key, keys: "ctrl+grave"}
+    start:    {label: "Kaydet", color: "#3ddc84", action: key, keys: "ctrl+s"}
+  l:
+    up:       {label: "Adım|Dışarı", color: "#f5a524", action: key, keys: "shift+f11"}
+    down:     {label: "Adım|İçeri", color: "#f5a524", action: key, keys: "f11"}
+    right:    {label: "Adım|Atla", color: "#f5a524", action: key, keys: "f10"}
+    left:     {label: "Breakpoint", color: "#f04e4e", action: key, keys: "f9"}
+    triangle: {label: "Debug|Durdur", color: "#f04e4e", action: key, keys: "shift+f5"}
+    circle:   {label: "Devam", color: "#3ddc84", action: key, keys: "f5"}
+  r:
+    triangle: {label: "VS Code", color: "#3d8bfd", action: command, cmd: "code"}
+    circle:   {label: "Terminal", color: "#3ddc84", action: key, keys: "ctrl+alt+t"}
+    square:   {label: "GitHub", color: "#6b7280", action: open, target: "https://github.com"}
+    cross:    {label: "Pencere|ler", color: "#a371f7", action: key, keys: "super"}

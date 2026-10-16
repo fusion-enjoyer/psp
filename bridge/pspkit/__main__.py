@@ -7,6 +7,7 @@
   python3 -m pspkit sim L B    make the Deck act as if button B was pressed on layer L
   python3 -m pspkit actions    list Deck actions and their parameters
   python3 -m pspkit init       write the default deck.yaml (if missing)
+  python3 -m pspkit profile    list ready-made layouts; `profile NAME` loads one
 """
 from __future__ import annotations
 
@@ -102,6 +103,25 @@ def cmd_actions(args) -> int:
     return 0
 
 
+def cmd_profile(args) -> int:
+    from .deck import profiles
+
+    if not args.name:
+        for name in profiles.names():
+            print(f"  {name:<12} {profiles.TITLES.get(name, name)}")
+        print("\nYüklemek için: pspkit profile <ad>  (mevcut deck.yaml .bak olarak yedeklenir)")
+        return 0
+    try:
+        backup = profiles.apply(args.name, Path(args.config))
+    except deck_config.ConfigError as e:
+        print(f"hata: {e}", file=sys.stderr)
+        return 1
+    print(f"'{args.name}' profili yüklendi: {args.config}")
+    if backup:
+        print(f"önceki ayarlar: {backup}")
+    return 0
+
+
 def cmd_init(args) -> int:
     path = Path(args.config)
     if path.exists():
@@ -189,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_sim)
     sub.add_parser("actions").set_defaults(fn=cmd_actions)
     sub.add_parser("init").set_defaults(fn=cmd_init)
+    p = sub.add_parser("profile", help="hazır profilleri listele / yükle")
+    p.add_argument("name", nargs="?")
+    p.set_defaults(fn=cmd_profile)
     sub.add_parser("doctor").set_defaults(fn=cmd_doctor)
 
     args = ap.parse_args(argv)

@@ -47,7 +47,7 @@ Rehber: [docs/deck.md](docs/deck.md)
 - [ ] Gerçek OBS ile deneme (şimdilik sahte sunucuyla test edildi)
 - [ ] İmleçli ızgara modu (Select'e uzun basınca) ve sayfalar
 - [ ] Karo ikonları (köprü küçük bitmap gönderir)
-- [ ] Hazır profiller: yayıncı, geliştirici, müzik
+- [x] Hazır profiller: genel, yayıncı, geliştirici, müzik (`pspkit profile`, masaüstünde Profil... menüsü, .bak yedeği)
 - [ ] PSP-1000 (32MB) testi
 - [ ] Companion Satellite eklentisi, Home Assistant aksiyonu, çok adımlı makrolar
 - [ ] **Reddit teaser videosu** (r/PSP, r/linux, r/streaming)

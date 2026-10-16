@@ -78,6 +78,22 @@ PSP'de **Oyun → Memory Stick → pspkit Deck**'i aç ve kabloyu tak. Uygulama 
 - **PSP ekran görüntüsü** PSP ekranını köprü üzerinden PNG olarak kaydeder (`~/Pictures/pspkit/`).
 - `deck.yaml`'ı elle de düzenleyebilirsin. Hem köprü hem uygulama değişikliği görür. Bozuk bir dosya kaydedersen köprü önceki ayarı kullanmaya devam eder ve hatayı PSP'de gösterir.
 
+## Hazır profiller
+
+Tek komutla bütün karoları değiştirebilirsin:
+
+```bash
+pspkit profile
+```
+
+Bu komut hazır profilleri listeler: genel, yayıncı (OBS), geliştirici (VS Code), müzik. Yüklemek için adını ver:
+
+```bash
+pspkit profile yayinci
+```
+
+Aynı şey masaüstü uygulamasındaki **Profil...** düğmesinde de var. Mevcut ayarların `deck.yaml.bak` olarak yedeklenir, PSP ekranı hemen güncellenir.
+
 ## Aksiyonlar
 
 Tam liste parametreleriyle birlikte `pspkit actions` komutunda.
