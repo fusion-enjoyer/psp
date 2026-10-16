@@ -43,6 +43,8 @@ pspkit-deck
 
 Ayrıntılar: **[docs/deck.md](docs/deck.md)**
 
+Gerçek PSP'de ilk deneme için adım adım kontrol listesi: **[docs/TEST.md](docs/TEST.md)**
+
 ## Depo
 
 | Klasör | İçerik |

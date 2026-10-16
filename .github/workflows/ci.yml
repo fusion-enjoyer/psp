@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  bridge:
+    name: Köprü testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - run: python -m unittest discover -s tests -t . -v
+        working-directory: bridge
+
+  psp:
+    name: PSP derleme (Deck + M0)
+    runs-on: ubuntu-latest
+    container: pspdev/pspdev:latest
+    steps:
+      - name: Araçlar
+        run: apk add --no-cache git make zip bash
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Deck
+        run: make release
+      - name: M0
+        run: make -C psp/m0 dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pspkit-deck
+          path: psp/apps/deck/pspkit-deck-*.zip

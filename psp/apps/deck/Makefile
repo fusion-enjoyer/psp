@@ -10,12 +10,18 @@ LIBS = -lpspusb -lpsppower -lpspdebug
 BUILD_PRX = 1
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = pspkit Deck
+PSP_EBOOT_ICON = ICON0.PNG
+PSP_EBOOT_PIC1 = PIC1.PNG
+VERSION = 0.1.0
 
 PSPLINKUSB = ../../../third_party/psplinkusb
 DIST = dist/PSP/GAME/pspkit_deck
 
 PSPSDK = $(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
+
+# Repack when the XMB images change (scripts/make_icons.py).
+EBOOT.PBP: ICON0.PNG PIC1.PNG
 
 # usbhostfs.prx ships next to the EBOOT, which loads it at startup.
 $(PSPLINKUSB)/usbhostfs/usbhostfs.prx:
@@ -25,6 +31,12 @@ dist: EBOOT.PBP $(PSPLINKUSB)/usbhostfs/usbhostfs.prx
 	mkdir -p $(DIST)
 	cp EBOOT.PBP $(PSPLINKUSB)/usbhostfs/usbhostfs.prx $(DIST)/
 	@echo "Kopyala: dist/PSP -> PSP hafiza kartinin kokune"
+
+# Hafiza kartinin kokune acilacak zip: PSP/GAME/pspkit_deck/...
+release: dist
+	rm -f pspkit-deck-$(VERSION).zip
+	cd dist && zip -qr ../pspkit-deck-$(VERSION).zip PSP
+	@echo "pspkit-deck-$(VERSION).zip hazir"
 
 # Kablo olmadan test: PPSSPP (Flatpak) hafiza kartina kopyala ve calistir.
 # tcp.cfg USB denemesini atlatir. Kopru: python3 -m pspkit (bridge/ icinde)
@@ -39,4 +51,4 @@ ppsspp: dist
 clean-lib:
 	rm -f $(LIBPSPKIT)/*.o
 
-.PHONY: dist ppsspp clean-lib
+.PHONY: dist release ppsspp clean-lib

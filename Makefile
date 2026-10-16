@@ -8,6 +8,9 @@ all: deck
 deck:            ## PSP Deck uygulamasını derle -> psp/apps/deck/dist/PSP
 	$(MAKE) -C psp/apps/deck dist
 
+release:         ## hafıza kartına açılacak zip -> psp/apps/deck/pspkit-deck-*.zip
+	$(MAKE) -C psp/apps/deck release
+
 ppsspp:          ## Deck'i PPSSPP'de aç (köprü çalışıyor olmalı)
 	$(MAKE) -C psp/apps/deck ppsspp
 
@@ -21,4 +24,4 @@ clean:
 	$(MAKE) -C psp/apps/deck clean clean-lib
 	$(MAKE) -C psp/m0 clean
 
-.PHONY: all deck ppsspp test install clean
+.PHONY: all deck release ppsspp test install clean

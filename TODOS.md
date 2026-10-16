@@ -40,7 +40,9 @@ Rehber: [docs/deck.md](docs/deck.md)
 - [x] Testler: 21 unittest (metin, ayar, tuş ayrıştırma, sahte OBS sunucusu, sahte PSP ile uçtan uca köprü)
 
 ### Kalan
-- [ ] **Gerçek PSP-2006'da USB ile çalıştır** (M0'daki açık sorular burada da geçerli)
+- [ ] **Gerçek PSP-2006'da USB ile çalıştır** (M0'daki açık sorular burada da geçerli) → [docs/TEST.md](docs/TEST.md)
+- [x] XMB ikonu (ICON0) ve arka plan (PIC1), `make release` ile hazır zip
+- [x] CI: köprü testleri + pspdev Docker'da EBOOT derleme, zip artifact
 - [ ] Analog çubuk gerçek cihazda: ölü bölge / hız ayarı (protokol testte doğrulandı, PPSSPP'de elle denenmedi)
 - [ ] Gerçek OBS ile deneme (şimdilik sahte sunucuyla test edildi)
 - [ ] İmleçli ızgara modu (Select'e uzun basınca) ve sayfalar
