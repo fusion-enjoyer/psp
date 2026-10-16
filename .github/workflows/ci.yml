@@ -9,8 +9,8 @@ jobs:
     name: Köprü testleri
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install pyyaml
@@ -24,14 +24,14 @@ jobs:
     steps:
       - name: Araçlar
         run: apk add --no-cache git make zip bash
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
       - name: Deck
         run: make release
       - name: M0
         run: make -C psp/m0 dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pspkit-deck
           path: psp/apps/deck/pspkit-deck-*.zip
