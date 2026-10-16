@@ -113,9 +113,14 @@ PSP açıkken kabloyu çek ve 5 saniye sonra geri tak.
 
 ## Bana gönder
 
+Takıldığın yerde (ya da her şey çalıştıysa en sonda) şunu çalıştır:
+
+```bash
+pspkit report
+```
+
+Bu komut doctor, status, USB cihazları, köprü logu ve usbhostfs logunu tek bir `pspkit-rapor-*.txt` dosyasına yazar. Bu dosyayla birlikte şunları da gönder:
 - Hangi adıma kadar geldin, nerede takıldın
-- `pspkit status` ve `pspkit doctor` çıktısı
-- `journalctl --user -u pspkit-bridge -n 50 --no-pager` çıktısı
-- PSP ekranının fotoğrafı ya da `pspkit shot` ile alınan görüntü
+- PSP ekranının fotoğrafı (ya da `pspkit shot` ile alınan görüntü)
 - Üst bardaki gecikme (ms)
 - CFW adı ve sürümü (XMB → Ayarlar → Sistem Ayarları → Sistem Bilgisi)

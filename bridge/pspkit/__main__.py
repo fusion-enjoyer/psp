@@ -2,6 +2,7 @@
 
   python3 -m pspkit run        start the bridge (USB + TCP)
   python3 -m pspkit doctor     check the setup and say how to fix problems
+  python3 -m pspkit report     write one file with everything needed to debug the setup
   python3 -m pspkit status     is the bridge running, which PSP apps are connected
   python3 -m pspkit shot       save a screenshot of the PSP screen
   python3 -m pspkit sim L B    make the Deck act as if button B was pressed on layer L
@@ -122,6 +123,46 @@ def cmd_profile(args) -> int:
     return 0
 
 
+def cmd_report(args) -> int:
+    """Collects everything needed to debug a setup into one text file."""
+    import contextlib
+    import io
+    import platform
+    import time
+
+    from .bridge import data_dir
+
+    def run(cmd: list[str]) -> str:
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            return (r.stdout + r.stderr).strip() or "(boş)"
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return f"(çalıştırılamadı: {e})"
+
+    def capture(fn, *a) -> str:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            fn(*a)
+        return buf.getvalue().strip()
+
+    usblog = data_dir() / "usbhostfs_pc.log"
+    sections = [
+        ("pspkit", f"{__version__}, python {platform.python_version()}, {platform.platform()}"),
+        ("git", run(["git", "-C", str(Path(__file__).resolve().parents[2]), "log", "-1", "--oneline"])),
+        ("doctor", capture(cmd_doctor, args)),
+        ("status", capture(cmd_status, args)),
+        ("lsusb (Sony)", "\n".join(l for l in run(["lsusb"]).splitlines() if "054c" in l) or "(PSP görünmüyor)"),
+        ("kopru logu (son 60)", run(["journalctl", "--user", "-u", "pspkit-bridge", "-n", "60", "--no-pager", "-o", "short-iso"])),
+        ("usbhostfs_pc logu (son 30)", "\n".join(usblog.read_text(errors="replace").splitlines()[-30:])
+         if usblog.exists() else "(yok)"),
+    ]
+    out = Path(args.out or f"pspkit-rapor-{time.strftime('%Y%m%d-%H%M%S')}.txt")
+    out.write_text("".join(f"===== {title} =====\n{body}\n\n" for title, body in sections), encoding="utf-8")
+    print(f"rapor yazıldı: {out.resolve()}")
+    print("Bu dosyayı gönder. Şifre içermez; yine de göndermeden önce göz atabilirsin.")
+    return 0
+
+
 def cmd_init(args) -> int:
     path = Path(args.config)
     if path.exists():
@@ -213,6 +254,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("name", nargs="?")
     p.set_defaults(fn=cmd_profile)
     sub.add_parser("doctor").set_defaults(fn=cmd_doctor)
+    p = sub.add_parser("report", help="hata ayıklama raporunu tek dosyaya yaz")
+    p.add_argument("-o", "--out", help="dosya adı (varsayılan: pspkit-rapor-<zaman>.txt)")
+    p.set_defaults(fn=cmd_report)
 
     args = ap.parse_args(argv)
     return args.fn(args)
